@@ -13,9 +13,14 @@
   <p>An `divshot-env` looks like this:</p>
 
   <template is="auto-binding">
+    <!-- You normally would not set the URL, doing so for demo purposes only. -->
     <divshot-env url="demo-env.json" data="{{env}}" released="{{releasedAt}}" version="{{version}}"></divshot-env>
 
     <p>The dog's name is configured as {{env.DOG_NAME}}. You are on version {{version}}, released at {{releasedAt}}.
+
+    <divshot-env url="demo-env.json" build="{{build}}"></divshot-env>
+
+    <p>Environment data is synced to all instances without additional requests. The build id is {{build}}.
   </template>
 
 </body>

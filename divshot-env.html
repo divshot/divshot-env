@@ -8,6 +8,9 @@ including release time, build id, and version number.
 See the [environment variables guide](http://docs.divshot.com/guides/environment-variables)
 for more information.
 
+**Note:** The environment information is synced across all instances of the
+`divshot-env` element to prevent additional unnecessary requests.
+
 ##### Example
 
     <divshot-env data="{{env}}"></divshot-env>
@@ -21,94 +24,117 @@ for more information.
 <polymer-element name="divshot-env" attributes="url data version released build dataReady">
 
   <template>
-    <core-ajax id="req" url="{{url}}" auto handleAs="json" on-core-response="{{populate}}" on-core-error="{{handleError}}"></core-ajax>
+    <core-ajax id="req" url="{{url}}" handleAs="json" on-core-response="{{populate}}" on-core-error="{{handleError}}"></core-ajax>
   </template>
   <script>
+    (function() {
+      var _els = [];
+      var _data = null;
+      var _fetched = false;
 
-    Polymer({
-      /**
-       * True if the request for environment information has completed.
-       *
-       * @attribute dataReady
-       * @type Boolean
-       * @default false
-       */
-      dataReady: false,
-      /**
-       * The time at which the current release was published. Null on error.
-       *
-       * @attribute released
-       * @type Date
-       * @default null
-       */
-      released: null,
-      /**
-       * The current version of release for this environment.
-       *
-       * @attribute version
-       * @type Integer
-       * @default null
-       */
-      version: null,
-      /**
-       * The unique build identifier for the currently deployed release.
-       *
-       * @attribute build
-       * @type String
-       * @default null
-       */
-      build: null,
-      url: '/__/env.json',
-      /**
-       * The environment data. Defaults to an empty object, use `dataReady`
-       * to check whether data has been retrieved.
-       *
-       * @attribute data
-       * @type Object
-       * @default {}
-       */
-      created: function() {
-        this.data = {};
-      },
-      /**
-       * Fired when the request for environment data is complete, whether
-       * successful or not.
-       * @event data-ready
-       */
-      /**
-       * Fired when the request for environment data was successful.
-       * @event data-success
-       */
-      /**
-       * Fired when the request for environment data had an error.
-       * @event data-error
-       */
-      populate: function(e) {
-        this.data = this.$.req.response;
-        this.released = new Date(this.data.__release.timestamp * 1000);
-        this.version = this.data.__release.release;
-        this.build = this.data.__release.build_id;
-        delete this.data.__release;
-
-        this.dataReady = true;
-        this.fire('data-ready', this.data);
-        this.fire('data-success', this.data);
-      },
-      handleError: function(e, detail) {
-        this.dataReady = true;
-        this.fire('data-ready', this.data);
-        this.fire('data-error', detail);
-      },
-      /**
-       * Trigger a new fetch of the data. Causes `dataReady` to be set to `false`
-       * until the new request completes.
-       */
-      refresh: function() {
-        this.dataReady = false;
-        this.$.req.go();
-      }
-    });
-
+      Polymer({
+        /**
+         * True if the request for environment information has completed.
+         *
+         * @attribute dataReady
+         * @type Boolean
+         * @default false
+         */
+        dataReady: false,
+        /**
+         * The time at which the current release was published. Null on error.
+         *
+         * @attribute released
+         * @type Date
+         * @default null
+         */
+        released: null,
+        /**
+         * The current version of release for this environment.
+         *
+         * @attribute version
+         * @type Integer
+         * @default null
+         */
+        version: null,
+        /**
+         * The unique build identifier for the currently deployed release.
+         *
+         * @attribute build
+         * @type String
+         * @default null
+         */
+        build: null,
+        url: '/__/env.json',
+        /**
+         * The environment data. Defaults to an empty object, use `dataReady`
+         * to check whether data has been retrieved.
+         *
+         * @attribute data
+         * @type Object
+         * @default {}
+         */
+        created: function() {
+          this.data = {};
+          _els.push(this);
+        },
+        ready: function() {
+          if (_data) {
+            this.data = _data;
+          } else if (!_fetched) {
+            this.$.req.go();
+            _fetched = true;
+          }
+        },
+        /**
+         * Fired when the request for environment data is complete, whether
+         * successful or not.
+         * @event data-ready
+         */
+        /**
+         * Fired when the request for environment data was successful.
+         * @event data-success
+         */
+        /**
+         * Fired when the request for environment data had an error.
+         * @event data-error
+         */
+        populate: function(e, detail) {
+          _data = detail.response;
+          for(var i = 0; i < _els.length; i++){
+            _els[i].data = _data;
+            _els[i].dataReady = true;
+            _els[i].fire('data-ready', this.data);
+            _els[i].fire('data-success', this.data);
+          }
+        },
+        handleError: function(e, detail) {
+          for(var i = 0; i < _els.length; i++){
+            _els[i].dataReady = true;
+            _els[i].fire('data-ready', this.data);
+            _els[i].fire('data-error', detail);
+          }
+        },
+        dataChanged: function() {
+          var releaseInfo = this.data.__release;
+          if (releaseInfo) {
+            this.released = new Date(releaseInfo.timestamp * 1000);
+            this.version = releaseInfo.release;
+            this.build = releaseInfo.build_id;
+          } else {
+            this.released = this.version = this.build = null;
+          }
+        },
+        /**
+         * Trigger a new fetch of the data. Causes `dataReady` to be set to `false`
+         * until the new request completes.
+         */
+        refresh: function() {
+          this.$.req.go();
+          for(var i = 0; i < _els.length; i++){ _els[i].dataReady = false; }
+        }
+      });
+    })();
   </script>
 
 </polymer-element>
