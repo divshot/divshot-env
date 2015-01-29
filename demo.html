@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>divshot-env Demo</title>
+
+  <script src="../webcomponentsjs/webcomponents.js"></script>
+  <link rel="import" href="divshot-env.html">
+
+</head>
+<body unresolved>
+
+  <p>An `divshot-env` looks like this:</p>
+
+  <template is="auto-binding">
+    <divshot-env url="demo-env.json" data="{{env}}" released="{{releasedAt}}" version="{{version}}"></divshot-env>
+
+    <p>The dog's name is configured as {{env.DOG_NAME}}. You are on version {{version}}, released at {{releasedAt}}.
+  </template>
+
+</body>
+</html>
